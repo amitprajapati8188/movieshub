@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pritam's Movie Drive</title>
+    <style>
+        /* Dark Theme Styles */
+        body { background: #0f0f0f; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; }
+        header { padding: 20px; text-align: center; border-bottom: 2px solid #e50914; }
+        
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 25px;
+            padding: 30px;
+        }
+
+        .movie-card {
+            background: #1c1c1c;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: 0.3s;
+            border: 1px solid transparent;
+        }
+        .movie-card:hover { transform: scale(1.05); border-color: #e50914; }
+        .movie-card img { width: 100%; height: 260px; object-fit: cover; }
+        .movie-title { padding: 10px; font-size: 14px; text-align: center; font-weight: bold; }
+
+        /* Modal Player */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 1000;
+        }
+        .modal-content { width: 90%; max-width: 1000px; margin: 50px auto; position: relative; }
+        .close { position: absolute; top: -40px; right: 0; color: white; font-size: 30px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <header><h1>Movie Hub</h1></header>
+
+    <div class="movie-grid" id="movieGrid">
+        </div>
+
+    <div id="videoModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeVideo()">&times;</span>
+            <iframe id="videoFrame" width="100%" height="550px" frameborder="0" allowfullscreen></iframe>
+        </div>
+    </div>
+
+    <script>
+    async function loadMovies() {
+        console.log("Loading movies..."); // Debug Line 1
+        try {
+            // ./ use karne se current folder confirm ho jata hai
+            const response = await fetch('./movies.json');
+            
+            if (!response.ok) {
+                throw new Error("JSON file nahi mili! Status: " + response.status);
+            }
+
+            const movies = await response.json();
+            console.log("Movies Data:", movies); // Debug Line 2
+
+            const grid = document.getElementById('movieGrid');
+            if (!grid) {
+                console.error("ID 'movieGrid' wala div nahi mila!");
+                return;
+            }
+
+            grid.innerHTML = ''; 
+
+            movies.forEach(movie => {
+                const card = document.createElement('div');
+                card.className = 'movie-card';
+                card.innerHTML = `
+                    <img src="${movie.poster}" alt="Poster" onerror="this.src='https://via.placeholder.com/200x300?text=No+Poster'">
+                    <div class="movie-title">${movie.title}</div>
+                `;
+                card.onclick = () => openVideo(movie.driveId);
+                grid.appendChild(card);
+            });
+
+            console.log("Grid successfully updated!"); // Debug Line 3
+
+        } catch (error) {
+            console.error("Error Detail:", error);
+            document.body.innerHTML += `<p style="color:red; text-align:center;">Error: ${error.message}</p>`;
+        }
+    }
+
+    function openVideo(id) {
+        const modal = document.getElementById('videoModal');
+        const iframe = document.getElementById('videoFrame');
+        iframe.src = `https://drive.google.com/file/d/${id}/preview`;
+        modal.style.display = 'block';
+    }
+
+    function closeVideo() {
+        document.getElementById('videoModal').style.display = 'none';
+        document.getElementById('videoFrame').src = '';
+    }
+
+    // Page load hote hi function run ho
+    window.onload = loadMovies;
+</script>
+</body>
+</html>
