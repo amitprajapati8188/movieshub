@@ -2,109 +2,206 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pritam's Movie Drive</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pritam Movie Hub</title>
     <style>
-        /* Dark Theme Styles */
-        body { background: #0f0f0f; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; }
-        header { padding: 20px; text-align: center; border-bottom: 2px solid #e50914; }
-        
-        .movie-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 25px;
-            padding: 30px;
+        /* Global Styles */
+        body {
+            background-color: #0a0a0a;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
         }
 
+        header {
+            background-color: #141414;
+            padding: 15px;
+            text-align: center;
+            border-bottom: 3px solid #e50914;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        header h1 {
+            margin: 0;
+            color: #e50914;
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Movie Grid Setup */
+        .movie-grid {
+            display: grid;
+            /* Mobile par 2 movies ek line mein */
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 15px;
+        }
+
+        /* Responsive Grid for Tablets and PC */
+        @media (min-width: 600px) {
+            .movie-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (min-width: 900px) {
+            .movie-grid { grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 30px; }
+        }
+        @media (min-width: 1200px) {
+            .movie-grid { grid-template-columns: repeat(5, 1fr); }
+        }
+
+        /* Movie Card Styling */
         .movie-card {
             background: #1c1c1c;
             border-radius: 8px;
             overflow: hidden;
             cursor: pointer;
-            transition: 0.3s;
-            border: 1px solid transparent;
+            transition: transform 0.3s ease, border 0.3s ease;
+            border: 1px solid #333;
         }
-        .movie-card:hover { transform: scale(1.05); border-color: #e50914; }
-        .movie-card img { width: 100%; height: 260px; object-fit: cover; }
-        .movie-title { padding: 10px; font-size: 14px; text-align: center; font-weight: bold; }
 
-        /* Modal Player */
-        .modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 1000;
+        .movie-card:hover {
+            transform: translateY(-5px);
+            border-color: #e50914;
         }
-        .modal-content { width: 90%; max-width: 1000px; margin: 50px auto; position: relative; }
-        .close { position: absolute; top: -40px; right: 0; color: white; font-size: 30px; cursor: pointer; }
+
+        .movie-card img {
+            width: 100%;
+            height: 230px; /* Mobile height */
+            object-fit: cover;
+            display: block;
+        }
+
+        @media (min-width: 768px) {
+            .movie-card img { height: 300px; } /* Desktop height */
+        }
+
+        .movie-title {
+            padding: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            text-align: center;
+            height: 38px;
+            line-height: 1.4;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* Max 2 lines for title */
+            -webkit-box-orient: vertical;
+        }
+
+        /* Video Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: relative;
+            width: 95%;
+            max-width: 900px;
+            margin: 10% auto;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        @media (max-width: 600px) {
+            .modal-content { margin: 30% auto; }
+        }
+
+        .close-btn {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            height: 0;
+        }
+
+        .video-container iframe {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+        }
     </style>
 </head>
 <body>
 
-    <header><h1>Movie Hub</h1></header>
+    <header>
+        <h1>Movie Hub</h1>
+    </header>
 
     <div class="movie-grid" id="movieGrid">
         </div>
 
     <div id="videoModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeVideo()">&times;</span>
-            <iframe id="videoFrame" width="100%" height="550px" frameborder="0" allowfullscreen></iframe>
+            <span class="close-btn" onclick="closeVideo()">&times;</span>
+            <div class="video-container">
+                <iframe id="videoFrame" src="" frameborder="0" allowfullscreen allow="autoplay"></iframe>
+            </div>
         </div>
     </div>
 
     <script>
-    async function loadMovies() {
-        console.log("Loading movies..."); // Debug Line 1
-        try {
-            // ./ use karne se current folder confirm ho jata hai
-            const response = await fetch('./movies.json');
-            
-            if (!response.ok) {
-                throw new Error("JSON file nahi mili! Status: " + response.status);
+        // Fetch Movies from JSON
+        async function loadMovies() {
+            try {
+                const response = await fetch('./movies.json');
+                if (!response.ok) throw new Error("JSON not found");
+                
+                const movies = await response.json();
+                const grid = document.getElementById('movieGrid');
+                grid.innerHTML = '';
+
+                movies.forEach(movie => {
+                    const card = document.createElement('div');
+                    card.className = 'movie-card';
+                    card.innerHTML = `
+                        <img src="${movie.poster}" alt="Poster" onerror="this.src='https://via.placeholder.com/200x300?text=Poster+Missing'">
+                        <div class="movie-title">${movie.title}</div>
+                    `;
+                    card.onclick = () => openVideo(movie.driveId);
+                    grid.appendChild(card);
+                });
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById('movieGrid').innerHTML = `<p style="color:red; text-align:center; grid-column: 1/-1;">Error loading movies. Make sure movies.json is in the same folder.</p>`;
             }
-
-            const movies = await response.json();
-            console.log("Movies Data:", movies); // Debug Line 2
-
-            const grid = document.getElementById('movieGrid');
-            if (!grid) {
-                console.error("ID 'movieGrid' wala div nahi mila!");
-                return;
-            }
-
-            grid.innerHTML = ''; 
-
-            movies.forEach(movie => {
-                const card = document.createElement('div');
-                card.className = 'movie-card';
-                card.innerHTML = `
-                    <img src="${movie.poster}" alt="Poster" onerror="this.src='https://via.placeholder.com/200x300?text=No+Poster'">
-                    <div class="movie-title">${movie.title}</div>
-                `;
-                card.onclick = () => openVideo(movie.driveId);
-                grid.appendChild(card);
-            });
-
-            console.log("Grid successfully updated!"); // Debug Line 3
-
-        } catch (error) {
-            console.error("Error Detail:", error);
-            document.body.innerHTML += `<p style="color:red; text-align:center;">Error: ${error.message}</p>`;
         }
-    }
 
-    function openVideo(id) {
-        const modal = document.getElementById('videoModal');
-        const iframe = document.getElementById('videoFrame');
-        iframe.src = `https://drive.google.com/file/d/${id}/preview`;
-        modal.style.display = 'block';
-    }
+        function openVideo(id) {
+            const modal = document.getElementById('videoModal');
+            const iframe = document.getElementById('videoFrame');
+            // Drive ID format
+            iframe.src = `https://drive.google.com/file/d/${id}/preview`;
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Stop background scrolling
+        }
 
-    function closeVideo() {
-        document.getElementById('videoModal').style.display = 'none';
-        document.getElementById('videoFrame').src = '';
-    }
+        function closeVideo() {
+            const modal = document.getElementById('videoModal');
+            const iframe = document.getElementById('videoFrame');
+            modal.style.display = 'none';
+            iframe.src = ''; // Stop video
+            document.body.style.overflow = 'auto'; // Resume scrolling
+        }
 
-    // Page load hote hi function run ho
-    window.onload = loadMovies;
-</script>
+        // Initialize
+        window.onload = loadMovies;
+    </script>
 </body>
 </html>
